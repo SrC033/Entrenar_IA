@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Training System | Neural Platform</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            background: #0a0a1a;
+            color: #ffffff;
+            min-height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Fondo dinámico con partículas */
+        #particles-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* Overlay de gradiente */
+        .gradient-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(ellipse at 20% 50%, rgba(10, 80, 200, 0.15) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 50%, rgba(120, 50, 200, 0.10) 0%, transparent 60%),
+                radial-gradient(ellipse at 50% 100%, rgba(0, 200, 255, 0.05) 0%, transparent 40%);
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* Contenido principal */
+        .main-container {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* Grid de fondo sutil */
+        .grid-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 50px 50px;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* Logo/Icono animado */
+        .logo-container {
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .neural-icon {
+            width: 120px;
+            height: 120px;
+            position: relative;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) scale(1); }
+            50% { transform: translateY(-15px) scale(1.02); }
+        }
+
+        .neural-icon svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 0 40px rgba(0, 150, 255, 0.3));
+        }
+
+        /* Título principal */
+        .main-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 4rem;
+            font-weight: 900;
+            text-align: center;
+            background: linear-gradient(135deg, #00d4ff 0%, #7b2ffc 50%, #ff6fd8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: none;
+            margin-bottom: 10px;
+            letter-spacing: 4px;
+            animation: glowText 3s ease-in-out infinite alternate;
+        }
+
+        @keyframes glowText {
+            0% { filter: drop-shadow(0 0 20px rgba(0, 150, 255, 0.2)); }
+            100% { filter: drop-shadow(0 0 40px rgba(120, 50, 255, 0.4)); }
+        }
+
+        .sub-title {
+            font-size: 1.4rem;
+            font-weight: 300;
+            color: rgba(255, 255, 255, 0.7);
+            text-align: center;
+            letter-spacing: 8px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        .sub-title span {
+            color: #00d4ff;
+            font-weight: 600;
+        }
+
+        /* Descripción */
+        .description {
+            max-width: 700px;
+            text-align: center;
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: rgba(255, 255, 255, 0.6);
+            margin: 20px 0 40px;
+            padding: 0 20px;
+        }
+
+        .description strong {
+            color: #00d4ff;
+            font-weight: 600;
+        }
+
+        /* Características */
+        .features {
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 50px;
+        }
+
+        .feature-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 16px;
+            padding: 20px 28px;
+            min-width: 140px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: default;
+        }
+
+        .feature-item:hover {
+            transform: translateY(-5px) scale(1.03);
+            border-color: rgba(0, 200, 255, 0.3);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4), inset 0 0 30px rgba(0, 150, 255, 0.05);
+        }
+
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .feature-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.8);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .feature-desc {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.4);
+            margin-top: 4px;
+        }
+
+        /* Botón principal */
+        .btn-launch {
+            display: inline-flex;
+            align-items: center;
+            gap: 15px;
+            padding: 18px 50px;
+            background: linear-gradient(135deg, #0066ff, #7b2ffc);
+            border: none;
+            border-radius: 60px;
+            color: white;
+            font-family: 'Orbitron', monospace;
+            font-size: 1.1rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+            text-decoration: none;
+            text-transform: uppercase;
+            box-shadow: 0 10px 40px rgba(0, 100, 255, 0.3);
+        }
+
+        .btn-launch::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 60%);
+            transform: scale(0);
+            transition: transform 0.6s;
+        }
+
+        .btn-launch:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 20px 60px rgba(0, 100, 255, 0.5);
+        }
+
+        .btn-launch:hover::before {
+            transform: scale(1);
+        }
+
+        .btn-launch:active {
+            transform: scale(0.96);
+        }
+
+        .btn-launch .arrow {
+            display: inline-block;
+            transition: transform 0.3s;
+            font-size: 1.3rem;
+        }
+
+        .btn-launch:hover .arrow {
+            transform: translateX(8px) scale(1.1);
+        }
+
+        /* Badge de versión */
+        .version-badge {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.2);
+            font-family: 'Orbitron', monospace;
+            letter-spacing: 2px;
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* Línea decorativa animada */
+        .scanline {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(0, 200, 255, 0.1), rgba(120, 50, 255, 0.1), transparent);
+            z-index: 5;
+            animation: scanMove 8s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes scanMove {
+            0% { top: -2px; }
+            100% { top: 100%; }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main-title {
+                font-size: 2.4rem;
+                letter-spacing: 2px;
+            }
+
+            .sub-title {
+                font-size: 0.9rem;
+                letter-spacing: 4px;
+            }
+
+            .description {
+                font-size: 0.95rem;
+                padding: 0 15px;
+            }
+
+            .features {
+                gap: 12px;
+            }
+
+            .feature-item {
+                padding: 14px 18px;
+                min-width: 100px;
+            }
+
+            .feature-icon {
+                font-size: 1.5rem;
+            }
+
+            .feature-label {
+                font-size: 0.7rem;
+            }
+
+            .btn-launch {
+                padding: 14px 35px;
+                font-size: 0.9rem;
+                gap: 10px;
+            }
+
+            .neural-icon {
+                width: 80px;
+                height: 80px;
+            }
+
+            .version-badge {
+                bottom: 15px;
+                right: 15px;
+                font-size: 0.6rem;
+                padding: 5px 12px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .main-title {
+                font-size: 1.8rem;
+            }
+
+            .sub-title {
+                font-size: 0.75rem;
+                letter-spacing: 2px;
+            }
+
+            .features {
+                flex-direction: column;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .feature-item {
+                width: 100%;
+                max-width: 250px;
+            }
+        }
+
+        /* Efecto de carga para el botón */
+        .btn-launch.loading {
+            pointer-events: none;
+            opacity: 0.7;
+        }
+
+        .btn-launch.loading .arrow {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Canvas de partículas -->
+    <canvas id="particles-canvas"></canvas>
+
+    <!-- Grid de fondo -->
+    <div class="grid-background"></div>
+
+    <!-- Overlay de gradiente -->
+    <div class="gradient-overlay"></div>
+
+    <!-- Línea de escaneo -->
+    <div class="scanline"></div>
+
+    <!-- Badge de versión -->
+    <div class="version-badge">✦ v2.0 · NEURAL CORE</div>
+
+    <!-- Contenido principal -->
+    <div class="main-container">
+
+        <!-- Icono animado -->
+        <div class="logo-container">
+            <div class="neural-icon">
+                <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="50" cy="50" r="45" stroke="url(#neuralGrad)" stroke-width="1.5" opacity="0.3"/>
+                    <circle cx="50" cy="50" r="35" stroke="url(#neuralGrad)" stroke-width="1" opacity="0.2"/>
+                    
+                    <!-- Nodos centrales -->
+                    <circle cx="50" cy="50" r="12" fill="url(#neuralGrad)" opacity="0.8"/>
+                    <circle cx="50" cy="50" r="6" fill="white" opacity="0.9"/>
+                    
+                    <!-- Nodos orbitantes -->
+                    <circle cx="50" cy="15" r="4" fill="#00d4ff" opacity="0.8">
+                        <animate attributeName="cy" values="15;85;15" dur="6s" repeatCount="indefinite"/>
+                    </circle>
+                    <circle cx="50" cy="85" r="4" fill="#7b2ffc" opacity="0.8">
+                        <animate attributeName="cy" values="85;15;85" dur="6s" repeatCount="indefinite"/>
+                    </circle>
+                    <circle cx="15" cy="50" r="4" fill="#ff6fd8" opacity="0.8">
+                        <animate attributeName="cx" values="15;85;15" dur="6s" repeatCount="indefinite"/>
+                    </circle>
+                    <circle cx="85" cy="50" r="4" fill="#00d4ff" opacity="0.8">
+                        <animate attributeName="cx" values="85;15;85" dur="6s" repeatCount="indefinite"/>
+                    </circle>
+                    
+                    <!-- Conexiones -->
+                    <line x1="50" y1="15" x2="50" y2="50" stroke="url(#neuralGrad)" stroke-width="0.8" opacity="0.4">
+                        <animate attributeName="y2" values="50;15;50" dur="6s" repeatCount="indefinite"/>
+                    </line>
+                    <line x1="50" y1="85" x2="50" y2="50" stroke="url(#neuralGrad)" stroke-width="0.8" opacity="0.4">
+                        <animate attributeName="y2" values="50;85;50" dur="6s" repeatCount="indefinite"/>
+                    </line>
+                    <line x1="15" y1="50" x2="50" y2="50" stroke="url(#neuralGrad)" stroke-width="0.8" opacity="0.4">
+                        <animate attributeName="x2" values="50;15;50" dur="6s" repeatCount="indefinite"/>
+                    </line>
+                    <line x1="85" y1="50" x2="50" y2="50" stroke="url(#neuralGrad)" stroke-width="0.8" opacity="0.4">
+                        <animate attributeName="x2" values="50;85;50" dur="6s" repeatCount="indefinite"/>
+                    </line>
+                    
+                    <defs>
+                        <linearGradient id="neuralGrad" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0%" stop-color="#00d4ff"/>
+                            <stop offset="50%" stop-color="#7b2ffc"/>
+                            <stop offset="100%" stop-color="#ff6fd8"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+            </div>
+        </div>
+
+        <!-- Títulos -->
+        <h1 class="main-title">NEURAL TRAIN</h1>
+        <p class="sub-title">Sistema de <span>Entrenamiento</span> y <span>Chat</span> con IA</p>
+
+        <!-- Descripción -->
+        <p class="description">
+            <strong>Entrena</strong> modelos de lenguaje con tus propios documentos.
+            <strong>Aprende</strong> de JSON, PDF, Word, Excel y más.
+            <strong>Conversa</strong> con una IA que conoce tu contenido.
+        </p>
+
+        <!-- Características -->
+        <div class="features">
+            <div class="feature-item">
+                <span class="feature-icon">🧠</span>
+                <div class="feature-label">Modelos GGUF</div>
+                <div class="feature-desc">Carga cualquier modelo</div>
+            </div>
+            <div class="feature-item">
+                <span class="feature-icon">📚</span>
+                <div class="feature-label">Documentos</div>
+                <div class="feature-desc">JSON · PDF · Word · Excel</div>
+            </div>
+            <div class="feature-item">
+                <span class="feature-icon">⚡</span>
+                <div class="feature-label">Entrenamiento</div>
+                <div class="feature-desc">Aprendizaje en tiempo real</div>
+            </div>
+            <div class="feature-item">
+                <span class="feature-icon">💬</span>
+                <div class="feature-label">Chat Contextual</div>
+                <div class="feature-desc">Preguntas y respuestas</div>
+            </div>
+        </div>
+
+        <!-- Botón de lanzamiento -->
+        <a href="modulos/main.html" class="btn-launch" id="launchBtn">
+            <span>Ingresar al Sistema</span>
+            <span class="arrow">→</span>
+        </a>
+
+        <p style="margin-top: 25px; font-size: 0.75rem; color: rgba(255,255,255,0.15); letter-spacing: 3px; text-transform: uppercase;">
+            Sistema de Entrenamiento Neural v2.0
+        </p>
+    </div>
+
+    <script>
+        // ===== SISTEMA DE PARTÍCULAS =====
+        const canvas = document.getElementById('particles-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        let mouseX = -1000;
+        let mouseY = -1000;
+        let animationId = null;
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 2 + 0.5;
+                this.speedX = (Math.random() - 0.5) * 0.3;
+                this.speedY = (Math.random() - 0.5) * 0.3;
+                this.opacity = Math.random() * 0.5 + 0.1;
+            }
+
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+
+                // Efecto de mouse - repulsión suave
+                const dx = this.x - mouseX;
+                const dy = this.y - mouseY;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < 150 && dist > 0) {
+                    const force = (150 - dist) / 150 * 0.5;
+                    this.x += (dx / dist) * force;
+                    this.y += (dy / dist) * force;
+                }
+
+                // Rebote en bordes
+                if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
+                if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
+
+                // Limitar posición
+                this.x = Math.max(0, Math.min(canvas.width, this.x));
+                this.y = Math.max(0, Math.min(canvas.height, this.y));
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(100, 200, 255, ${this.opacity})`;
+                ctx.fill();
+            }
+        }
+
+        function initParticles() {
+            particles = [];
+            const count = Math.min(120, Math.floor((canvas.width * canvas.height) / 8000));
+            for (let i = 0; i < count; i++) {
+                particles.push(new Particle());
+            }
+        }
+
+        function drawConnections() {
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    const dx = particles[i].x - particles[j].x;
+                    const dy = particles[i].y - particles[j].y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < 120) {
+                        const opacity = (1 - dist / 120) * 0.15;
+                        ctx.beginPath();
+                        ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(particles[j].x, particles[j].y);
+                        ctx.strokeStyle = `rgba(100, 200, 255, ${opacity})`;
+                        ctx.lineWidth = 0.5;
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            drawConnections();
+            animationId = requestAnimationFrame(animateParticles);
+        }
+
+        // Eventos de mouse
+        canvas.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            mouseX = -1000;
+            mouseY = -1000;
+        });
+
+        // Iniciar partículas
+        initParticles();
+        animateParticles();
+
+        // ===== EFECTO DE CARGA EN EL BOTÓN =====
+        document.getElementById('launchBtn').addEventListener('click', function(e) {
+            this.classList.add('loading');
+            this.querySelector('.arrow').textContent = '⟳';
+            
+            // Redirigir después de un breve retraso para el efecto
+            setTimeout(() => {
+                // La redirección se maneja con el href del enlace
+            }, 100);
+        });
+
+        // ===== RESPONSIVE: Reajustar partículas =====
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            initParticles();
+        });
+
+        // ===== EFECTO DE TIPO EN EL TÍTULO =====
+        // (Efecto visual adicional: brillo en el título)
+
+        console.log('🧠 Neural Train System v2.0');
+        console.log('🚀 Sistema de Entrenamiento y Chat con IA');
+        console.log('📚 Soporte para: JSON, PDF, Word, Excel, TXT');
+    </script>
+</body>
+</html>

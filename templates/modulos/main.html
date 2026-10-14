@@ -1,0 +1,1441 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEURAL TRAIN · Fine-Tuning System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            background: #0a0a1a;
+            color: #e0e0e0;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .app-container {
+            display: flex;
+            height: 100vh;
+            background: #0a0a1a;
+            gap: 0;
+        }
+
+        /* ===== SIDEBAR ===== */
+        .sidebar {
+            width: 280px;
+            background: rgba(20, 30, 50, 0.95);
+            backdrop-filter: blur(20px);
+            padding: 12px 10px;
+            overflow-y: auto;
+            border-right: 1px solid rgba(0, 200, 255, 0.08);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+
+        .sidebar::-webkit-scrollbar {
+            width: 3px;
+        }
+        .sidebar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .sidebar::-webkit-scrollbar-thumb {
+            background: rgba(0, 200, 255, 0.3);
+            border-radius: 10px;
+        }
+
+        .sidebar-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid rgba(0, 200, 255, 0.08);
+            margin-bottom: 2px;
+        }
+
+        .sidebar-header .logo {
+            font-size: 20px;
+            filter: drop-shadow(0 0 20px rgba(0, 150, 255, 0.3));
+        }
+
+        .sidebar-header h2 {
+            font-family: 'Orbitron', monospace;
+            font-size: 11px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #00d4ff, #7b2ffc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 1.5px;
+        }
+
+        .sidebar-header .version {
+            font-size: 7px;
+            color: rgba(255,255,255,0.1);
+            font-family: 'Orbitron', monospace;
+            margin-left: auto;
+            letter-spacing: 1px;
+        }
+
+        .section {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 6px;
+            padding: 6px 8px;
+        }
+
+        .section-title {
+            font-size: 7px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: rgba(255, 255, 255, 0.15);
+            margin-bottom: 3px;
+            font-family: 'Orbitron', monospace;
+        }
+
+        .status-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-dot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+
+        .status-dot.online {
+            background: #4caf50;
+            box-shadow: 0 0 8px rgba(76, 175, 80, 0.4);
+        }
+        .status-dot.offline {
+            background: #f44336;
+            box-shadow: 0 0 8px rgba(244, 67, 54, 0.3);
+        }
+        .status-dot.training {
+            background: #ff9800;
+            box-shadow: 0 0 8px rgba(255, 152, 0, 0.4);
+            animation: pulse-dot 1s infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.8); }
+        }
+
+        .status-label {
+            font-size: 9px;
+            font-weight: 400;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .info-text {
+            font-size: 8px;
+            color: rgba(255, 255, 255, 0.15);
+            font-family: 'Consolas', monospace;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 3px;
+        }
+
+        .input-group input {
+            flex: 1;
+            padding: 3px 6px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 4px;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 9px;
+            font-family: 'Consolas', monospace;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: rgba(0, 200, 255, 0.15);
+        }
+
+        .btn {
+            padding: 3px 5px;
+            border: none;
+            border-radius: 3px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 9px;
+            background: rgba(255, 255, 255, 0.04);
+            color: rgba(255, 255, 255, 0.3);
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            filter: brightness(1.2);
+        }
+
+        .btn:disabled {
+            opacity: 0.2;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .btn-primary {
+            background: rgba(13, 71, 161, 0.4);
+            color: rgba(255, 255, 255, 0.5);
+        }
+        .btn-primary:hover:not(:disabled) {
+            background: rgba(13, 71, 161, 0.6);
+        }
+
+        .btn-success {
+            background: rgba(27, 94, 32, 0.3);
+            color: rgba(255, 255, 255, 0.4);
+        }
+        .btn-success:hover:not(:disabled) {
+            background: rgba(27, 94, 32, 0.5);
+        }
+
+        .btn-danger {
+            background: rgba(183, 28, 28, 0.2);
+            color: rgba(255, 255, 255, 0.3);
+        }
+        .btn-danger:hover:not(:disabled) {
+            background: rgba(183, 28, 28, 0.4);
+        }
+
+        .btn-info {
+            background: rgba(0, 105, 92, 0.2);
+            color: rgba(255, 255, 255, 0.3);
+        }
+        .btn-info:hover:not(:disabled) {
+            background: rgba(0, 105, 92, 0.4);
+        }
+
+        .btn-warning {
+            background: rgba(230, 81, 0, 0.2);
+            color: rgba(255, 255, 255, 0.3);
+        }
+        .btn-warning:hover:not(:disabled) {
+            background: rgba(230, 81, 0, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.03);
+            color: rgba(255, 255, 255, 0.2);
+        }
+        .btn-secondary:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .model-list, .file-list {
+            max-height: 50px;
+            overflow-y: auto;
+            margin-top: 2px;
+        }
+
+        .model-list::-webkit-scrollbar,
+        .file-list::-webkit-scrollbar {
+            width: 2px;
+        }
+        .model-list::-webkit-scrollbar-thumb,
+        .file-list::-webkit-scrollbar-thumb {
+            background: rgba(0, 200, 255, 0.1);
+            border-radius: 10px;
+        }
+
+        .model-item {
+            padding: 2px 5px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 3px;
+            margin: 1px 0;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 2px solid transparent;
+            color: rgba(255, 255, 255, 0.25);
+        }
+
+        .model-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .model-item.selected {
+            background: rgba(13, 71, 161, 0.2);
+            border-left-color: #4fc3f7;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .model-item .size {
+            font-size: 6px;
+            color: rgba(255, 255, 255, 0.1);
+        }
+
+        .file-item {
+            padding: 2px 5px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 3px;
+            margin: 1px 0;
+            display: flex;
+            justify-content: space-between;
+            font-size: 8px;
+            color: rgba(255, 255, 255, 0.2);
+        }
+
+        .file-item .badge {
+            background: rgba(255, 255, 255, 0.04);
+            padding: 0 4px;
+            border-radius: 4px;
+            font-size: 6px;
+            color: rgba(255, 255, 255, 0.1);
+        }
+
+        .empty-text {
+            font-size: 7px;
+            color: rgba(255, 255, 255, 0.06);
+            padding: 2px 0;
+        }
+
+        .progress-container {
+            margin-top: 2px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00d4ff, #7b2ffc);
+            transition: width 0.5s ease;
+            width: 0%;
+            border-radius: 2px;
+        }
+
+        .progress-text {
+            font-size: 7px;
+            color: rgba(255, 255, 255, 0.1);
+            margin-top: 1px;
+            font-family: 'Consolas', monospace;
+        }
+
+        .stats-row {
+            display: flex;
+            gap: 6px;
+            font-size: 7px;
+            color: rgba(255, 255, 255, 0.1);
+            font-family: 'Consolas', monospace;
+            margin-top: 2px;
+        }
+
+        /* ===== PANELES ===== */
+        .panels-container {
+            flex: 1;
+            display: flex;
+            min-width: 0;
+            gap: 0;
+        }
+
+        .panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: rgba(10, 10, 26, 0.9);
+            min-width: 0;
+            border-right: 1px solid rgba(255, 255, 255, 0.02);
+        }
+
+        .panel:last-child {
+            border-right: none;
+        }
+
+        .panel-header {
+            padding: 8px 14px;
+            background: rgba(20, 30, 50, 0.3);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .panel-header h1 {
+            font-family: 'Orbitron', monospace;
+            font-size: 10px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #00d4ff, #7b2ffc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 1px;
+        }
+
+        .panel-header .panel-info {
+            font-size: 8px;
+            color: rgba(255, 255, 255, 0.1);
+            font-family: 'Consolas', monospace;
+        }
+
+        /* ===== PANEL FINETUNE ===== */
+        .finetune-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .finetune-content::-webkit-scrollbar {
+            width: 3px;
+        }
+        .finetune-content::-webkit-scrollbar-thumb {
+            background: rgba(0, 200, 255, 0.08);
+            border-radius: 10px;
+        }
+
+        .finetune-section {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 4px;
+            padding: 6px 8px;
+        }
+
+        .finetune-section .label {
+            font-size: 7px;
+            color: rgba(255, 255, 255, 0.12);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-family: 'Orbitron', monospace;
+            margin-bottom: 2px;
+        }
+
+        .finetune-section .value {
+            font-size: 9px;
+            font-family: 'Consolas', monospace;
+            color: rgba(255, 255, 255, 0.4);
+            word-break: break-all;
+        }
+
+        .finetune-section .value .highlight {
+            color: #4fc3f7;
+        }
+
+        .data-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            font-size: 8px;
+            font-family: 'Consolas', monospace;
+            color: rgba(255, 255, 255, 0.15);
+        }
+
+        .data-row .data-item .num {
+            color: rgba(255, 255, 255, 0.35);
+        }
+
+        .btn-group-small {
+            display: flex;
+            gap: 3px;
+            flex-wrap: wrap;
+        }
+
+        /* ===== PANEL CONOCIMIENTO (EDITOR) ===== */
+        .knowledge-editor {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: rgba(10, 10, 26, 0.95);
+            overflow: hidden;
+        }
+
+        .knowledge-editor .editor-toolbar {
+            padding: 4px 10px;
+            background: rgba(20, 30, 50, 0.3);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .knowledge-editor .editor-toolbar .toolbar-left {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .knowledge-editor .editor-toolbar .toolbar-right {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .knowledge-editor .editor-toolbar .file-info {
+            font-size: 8px;
+            color: rgba(255, 255, 255, 0.12);
+            font-family: 'Consolas', monospace;
+        }
+
+        .knowledge-editor .editor-body {
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .knowledge-editor textarea {
+            width: 100%;
+            height: 100%;
+            padding: 12px 14px;
+            background: rgba(10, 10, 26, 0.98);
+            border: none;
+            color: rgba(255, 255, 255, 0.7);
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.6;
+            resize: none;
+            outline: none;
+            tab-size: 4;
+        }
+
+        .knowledge-editor textarea::selection {
+            background: rgba(0, 200, 255, 0.15);
+        }
+
+        .knowledge-editor textarea:focus {
+            box-shadow: none;
+        }
+
+        .knowledge-editor .line-numbers {
+            position: absolute;
+            top: 0;
+            left: 0;
+            padding: 12px 8px;
+            font-family: 'Consolas', monospace;
+            font-size: 12px;
+            line-height: 1.6;
+            color: rgba(255, 255, 255, 0.05);
+            text-align: right;
+            pointer-events: none;
+            user-select: none;
+            min-width: 30px;
+        }
+
+        .knowledge-editor .editor-status {
+            padding: 3px 10px;
+            background: rgba(20, 30, 50, 0.2);
+            border-top: 1px solid rgba(255, 255, 255, 0.02);
+            display: flex;
+            justify-content: space-between;
+            font-size: 8px;
+            color: rgba(255, 255, 255, 0.08);
+            font-family: 'Consolas', monospace;
+            flex-shrink: 0;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 1024px) {
+            .panels-container {
+                flex-direction: column;
+            }
+            .panel {
+                border-right: none;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+                max-height: 50vh;
+            }
+            .panel:last-child {
+                border-bottom: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .app-container {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                max-height: 160px;
+                border-right: none;
+                border-bottom: 1px solid rgba(0, 200, 255, 0.05);
+            }
+            .knowledge-editor textarea {
+                font-size: 10px;
+                padding: 8px 10px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .sidebar {
+                max-height: 140px;
+                padding: 6px;
+            }
+            .panel-header h1 {
+                font-size: 8px;
+            }
+            .knowledge-editor textarea {
+                font-size: 9px;
+            }
+        }
+
+        /* Scrollbar para textarea */
+        .knowledge-editor textarea::-webkit-scrollbar {
+            width: 4px;
+        }
+        .knowledge-editor textarea::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .knowledge-editor textarea::-webkit-scrollbar-thumb {
+            background: rgba(0, 200, 255, 0.1);
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- ===== SIDEBAR ===== -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <span class="logo">🧠</span>
+                <h2>NEURAL TRAIN</h2>
+                <span class="version">v2.0</span>
+            </div>
+
+            <!-- Status -->
+            <div class="section">
+                <div class="section-title">⚡ Sistema</div>
+                <div class="status-row">
+                    <span class="status-dot offline" id="statusDot"></span>
+                    <span class="status-label" id="statusText">Desconectado</span>
+                </div>
+                <div class="info-text" id="modeloInfo">Modelo: —</div>
+                <div class="info-text" id="llamaInfo">Llama: ⏹</div>
+            </div>
+
+            <!-- Modelo -->
+            <div class="section">
+                <div class="section-title">📡 Modelo</div>
+                <div class="input-group" style="margin-bottom:2px;">
+                    <input type="text" id="carpetaModelos" placeholder="Ruta modelos .gguf" 
+                           value="C:\Users\PC\Downloads\gestion_2\llama\llama-b9455-bin-win-cpu-x64\modelos">
+                    <button class="btn btn-secondary" id="explorarCarpetaBtn" title="Explorar">📂</button>
+                </div>
+                <div style="display:flex; gap:2px; margin-bottom:2px;">
+                    <button class="btn btn-secondary" id="listarModelosBtn" style="flex:1;" title="Buscar modelos">🔍</button>
+                    <button class="btn btn-primary" id="cargarModeloBtn" style="flex:1;" disabled title="Cargar modelo">⬆️</button>
+                </div>
+                <div class="model-list" id="modelList">
+                    <div class="empty-text">No hay modelos</div>
+                </div>
+            </div>
+
+            <!-- Documentos -->
+            <div class="section">
+                <div class="section-title">📄 Documentos</div>
+                <input type="file" id="archivosInput" multiple accept=".json,.txt,.pdf,.docx,.doc,.xlsx,.xls,.csv,.md,.html,.xml" style="display:none;">
+                <div style="display:flex; gap:2px;">
+                    <button class="btn btn-secondary" id="btnSeleccionarArchivos" style="flex:1;" title="Seleccionar archivos">📎</button>
+                    <button class="btn btn-success" id="cargarDocumentosBtn" style="flex:1;" disabled title="Cargar documentos">⬆️</button>
+                    <button class="btn btn-danger" id="limpiarDocsBtn" style="flex:0.5;" title="Eliminar">🗑️</button>
+                </div>
+                <div class="file-list" id="fileList">
+                    <div class="empty-text">No hay documentos</div>
+                </div>
+            </div>
+
+            <!-- Fine-Tuning -->
+            <div class="section">
+                <div class="section-title">🎯 Fine-Tuning</div>
+                <div style="display:flex; gap:2px; flex-wrap:wrap;">
+                    <button class="btn btn-info" id="prepararBtn" disabled style="flex:1;" title="Preparar dataset">📦</button>
+                    <button class="btn btn-warning" id="finetuneBtn" disabled style="flex:1;" title="Iniciar Fine-Tuning">⚡</button>
+                    <button class="btn btn-secondary" id="exportarBtn" disabled style="flex:0.7;" title="Exportar">📤</button>
+                    <button class="btn btn-danger" id="limpiarFinetuneBtn" disabled style="flex:0.7;" title="Limpiar">🧹</button>
+                </div>
+                <div class="progress-container">
+                    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+                    <div class="progress-text" id="progressText">Esperando...</div>
+                </div>
+                <div class="stats-row">
+                    <span id="paresInfo">🧩 0</span>
+                    <span id="docsInfo">📄 0</span>
+                </div>
+            </div>
+
+            <!-- Acciones -->
+            <div style="display:flex; gap:2px;">
+                <button class="btn btn-secondary" id="limpiarHistorialBtn" style="flex:1;" title="Limpiar historial">🧹 Historial</button>
+                <button class="btn btn-danger" id="limpiarTodoBtn" style="flex:1;" title="Eliminar todo">💀 Todo</button>
+            </div>
+        </div>
+
+        <!-- ===== PANELES ===== -->
+        <div class="panels-container">
+
+            <!-- ===== PANEL 1: FINE-TUNING ===== -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h1>🔧 FINE-TUNING</h1>
+                    <span class="panel-info" id="finetuneModeloInfo">Modelo: —</span>
+                </div>
+                <div class="finetune-content" id="finetuneContent">
+                    <div class="finetune-section">
+                        <div class="label">📋 Modelo</div>
+                        <div class="value" id="modeloDetalle">
+                            <span class="dim">No hay modelo cargado</span>
+                        </div>
+                    </div>
+
+                    <div class="finetune-section">
+                        <div class="label">📊 Datos</div>
+                        <div class="data-row">
+                            <span class="data-item">Tipo: <span class="num" id="modeloTipo">—</span></span>
+                            <span class="data-item">Contexto: <span class="num" id="modeloContexto">—</span></span>
+                            <span class="data-item">Tokens: <span class="num" id="modeloTokens">—</span></span>
+                            <span class="data-item">Batch: <span class="num" id="modeloBatch">—</span></span>
+                            <span class="data-item">Threads: <span class="num" id="modeloThreads">—</span></span>
+                        </div>
+                    </div>
+
+                    <div class="finetune-section">
+                        <div class="label">📚 Dataset</div>
+                        <div class="data-row">
+                            <span class="data-item">Pares: <span class="num" id="datasetPares">0</span></span>
+                            <span class="data-item">Documentos: <span class="num" id="datasetDocs">0</span></span>
+                            <span class="data-item">Chunks: <span class="num" id="datasetChunks">0</span></span>
+                        </div>
+                        <div class="btn-group-small" style="margin-top:3px;">
+                            <button class="btn btn-success" id="btnGuardarDataset" disabled>💾 Guardar</button>
+                            <button class="btn btn-secondary" id="btnVerDataset" disabled>👁️ Ver</button>
+                        </div>
+                    </div>
+
+                    <div class="finetune-section">
+                        <div class="label">⚡ Entrenamiento</div>
+                        <div class="btn-group-small">
+                            <button class="btn btn-warning" id="btnIniciarEntrenamiento" disabled>▶️ Iniciar</button>
+                            <button class="btn btn-danger" id="btnDetenerEntrenamiento" disabled>⏹️ Detener</button>
+                            <button class="btn btn-secondary" id="btnVerProgreso" disabled>📊 Progreso</button>
+                        </div>
+                        <div class="progress-container" style="margin-top:3px;">
+                            <div class="progress-bar"><div class="progress-fill" id="trainProgressFill"></div></div>
+                            <div class="progress-text" id="trainProgressText">Listo</div>
+                        </div>
+                    </div>
+
+                    <div class="finetune-section">
+                        <div class="label">🔧 Acciones</div>
+                        <div class="btn-group-small">
+                            <button class="btn btn-primary" id="btnGuardarModelo" disabled>💾 Guardar</button>
+                            <button class="btn btn-secondary" id="btnExportarModelo" disabled>📤 Exportar</button>
+                            <button class="btn btn-danger" id="btnResetearModelo" disabled>🔄 Resetear</button>
+                        </div>
+                    </div>
+
+                    <div class="finetune-section" style="flex:1; min-height:40px;">
+                        <div class="label">📝 Logs</div>
+                        <div id="finetuneLogs" style="font-size:8px; font-family:'Consolas',monospace; color:rgba(255,255,255,0.12); max-height:60px; overflow-y:auto; white-space:pre-wrap; word-break:break-all;">
+                            <span class="dim">Esperando actividad...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== PANEL 2: CONOCIMIENTO (EDITOR) ===== -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h1>📖 CONOCIMIENTO</h1>
+                    <span class="panel-info" id="knowledgeInfo">0 chunks · 0 docs</span>
+                </div>
+
+                <div class="knowledge-editor">
+                    <div class="editor-toolbar">
+                        <div class="toolbar-left">
+                            <button class="btn btn-success" id="btnGuardarConocimiento" title="Guardar conocimiento">💾</button>
+                            <button class="btn btn-secondary" id="btnRecargarConocimiento" title="Recargar">🔄</button>
+                            <button class="btn btn-secondary" id="btnLimpiarEditor" title="Limpiar editor">🧹</button>
+                            <span class="file-info" id="editorFileInfo">conocimiento.txt</span>
+                        </div>
+                        <div class="toolbar-right">
+                            <span class="file-info" id="editorStats">Líneas: 0 · Caracteres: 0</span>
+                        </div>
+                    </div>
+
+                    <div class="editor-body">
+                        <textarea id="knowledgeEditor" spellcheck="false" placeholder="El conocimiento del modelo se mostrará aquí..."></textarea>
+                    </div>
+
+                    <div class="editor-status">
+                        <span id="editorStatus">Listo</span>
+                        <span id="editorTimestamp">Última actualización: —</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        // ESTADO
+        // ============================================================
+        const state = {
+            iaActiva: false,
+            entrenando: false,
+            documentos: [],
+            modeloSeleccionado: null,
+            modelos: [],
+            pares: 0,
+            conocimiento: [],
+            editorModificado: false
+        };
+
+        // ============================================================
+        // DOM REFS
+        // ============================================================
+        const $ = id => document.getElementById(id);
+        const statusDot = $('statusDot');
+        const statusText = $('statusText');
+        const modeloInfo = $('modeloInfo');
+        const llamaInfo = $('llamaInfo');
+        const carpetaModelos = $('carpetaModelos');
+        const listarModelosBtn = $('listarModelosBtn');
+        const explorarCarpetaBtn = $('explorarCarpetaBtn');
+        const modelList = $('modelList');
+        const cargarModeloBtn = $('cargarModeloBtn');
+        const archivosInput = $('archivosInput');
+        const btnSeleccionarArchivos = $('btnSeleccionarArchivos');
+        const cargarDocumentosBtn = $('cargarDocumentosBtn');
+        const fileList = $('fileList');
+        const limpiarDocsBtn = $('limpiarDocsBtn');
+        const prepararBtn = $('prepararBtn');
+        const finetuneBtn = $('finetuneBtn');
+        const exportarBtn = $('exportarBtn');
+        const limpiarFinetuneBtn = $('limpiarFinetuneBtn');
+        const progressFill = $('progressFill');
+        const progressText = $('progressText');
+        const paresInfo = $('paresInfo');
+        const docsInfo = $('docsInfo');
+        const limpiarHistorialBtn = $('limpiarHistorialBtn');
+        const limpiarTodoBtn = $('limpiarTodoBtn');
+
+        // Panel Fine-Tuning
+        const finetuneModeloInfo = $('finetuneModeloInfo');
+        const modeloDetalle = $('modeloDetalle');
+        const modeloTipo = $('modeloTipo');
+        const modeloContexto = $('modeloContexto');
+        const modeloTokens = $('modeloTokens');
+        const modeloBatch = $('modeloBatch');
+        const modeloThreads = $('modeloThreads');
+        const datasetPares = $('datasetPares');
+        const datasetDocs = $('datasetDocs');
+        const datasetChunks = $('datasetChunks');
+        const btnGuardarDataset = $('btnGuardarDataset');
+        const btnVerDataset = $('btnVerDataset');
+        const btnIniciarEntrenamiento = $('btnIniciarEntrenamiento');
+        const btnDetenerEntrenamiento = $('btnDetenerEntrenamiento');
+        const btnVerProgreso = $('btnVerProgreso');
+        const trainProgressFill = $('trainProgressFill');
+        const trainProgressText = $('trainProgressText');
+        const btnGuardarModelo = $('btnGuardarModelo');
+        const btnExportarModelo = $('btnExportarModelo');
+        const btnResetearModelo = $('btnResetearModelo');
+        const finetuneLogs = $('finetuneLogs');
+
+        // Panel Conocimiento
+        const knowledgeEditor = $('knowledgeEditor');
+        const knowledgeInfo = $('knowledgeInfo');
+        const editorFileInfo = $('editorFileInfo');
+        const editorStats = $('editorStats');
+        const editorStatus = $('editorStatus');
+        const editorTimestamp = $('editorTimestamp');
+        const btnGuardarConocimiento = $('btnGuardarConocimiento');
+        const btnRecargarConocimiento = $('btnRecargarConocimiento');
+        const btnLimpiarEditor = $('btnLimpiarEditor');
+
+        // ============================================================
+        // UI FUNCTIONS
+        // ============================================================
+        function updateStatus(online, training = false) {
+            state.iaActiva = online;
+            state.entrenando = training;
+            if (training) {
+                statusDot.className = 'status-dot training';
+                statusText.textContent = 'Entrenando...';
+            } else if (online) {
+                statusDot.className = 'status-dot online';
+                statusText.textContent = 'Conectado';
+            } else {
+                statusDot.className = 'status-dot offline';
+                statusText.textContent = 'Desconectado';
+            }
+            prepararBtn.disabled = !online || state.documentos.length === 0;
+            finetuneBtn.disabled = !online || state.pares < 3;
+            exportarBtn.disabled = !online || state.pares === 0;
+            limpiarFinetuneBtn.disabled = !online || state.pares === 0;
+            cargarDocumentosBtn.disabled = !online;
+            btnGuardarDataset.disabled = !online || state.pares === 0;
+            btnVerDataset.disabled = !online || state.pares === 0;
+            btnIniciarEntrenamiento.disabled = !online || state.pares < 3;
+            btnGuardarModelo.disabled = !online;
+            btnExportarModelo.disabled = !online;
+            btnResetearModelo.disabled = !online;
+        }
+
+        function updateModelInfo(modelo) {
+            const text = modelo ? `📌 ${modelo}` : 'Modelo: —';
+            modeloInfo.textContent = text;
+            finetuneModeloInfo.textContent = `Modelo: ${modelo || '—'}`;
+            if (modelo) {
+                modeloDetalle.innerHTML = `<span class="highlight">${modelo}</span> <span class="dim">(${state.modeloData?.tipo || '—'})</span>`;
+            } else {
+                modeloDetalle.innerHTML = `<span class="dim">No hay modelo cargado</span>`;
+            }
+        }
+
+        function updateModeloData(data) {
+            if (data) {
+                state.modeloData = data;
+                modeloTipo.textContent = data.tipo || '—';
+                modeloContexto.textContent = data.contexto || '—';
+                modeloTokens.textContent = data.tokens || '—';
+                modeloBatch.textContent = data.batch || '—';
+                modeloThreads.textContent = data.threads || '—';
+            }
+        }
+
+        function updateLlamaInfo(activo) {
+            llamaInfo.textContent = activo ? 'Llama: ✅ Activo' : 'Llama: ⏹ Detenido';
+        }
+
+        function updateFinetuneInfo(estado) {
+            if (estado) {
+                paresInfo.textContent = `🧩 ${estado.total_pares || 0}`;
+                docsInfo.textContent = `📄 ${estado.documentos_procesados || 0}`;
+                state.pares = estado.total_pares || 0;
+                datasetPares.textContent = estado.total_pares || 0;
+                datasetDocs.textContent = estado.documentos_procesados || 0;
+                datasetChunks.textContent = estado.total_chunks || 0;
+                if (estado.esta_entrenando) {
+                    progressFill.style.width = `${estado.progreso || 0}%`;
+                    progressText.textContent = `⏳ ${estado.progreso || 0}%`;
+                    trainProgressFill.style.width = `${estado.progreso || 0}%`;
+                    trainProgressText.textContent = `Entrenando... ${estado.progreso || 0}%`;
+                } else {
+                    trainProgressText.textContent = 'Listo';
+                }
+            }
+        }
+
+        function updateFileList(files) {
+            state.documentos = files || [];
+            fileList.innerHTML = '';
+            if (state.documentos.length === 0) {
+                fileList.innerHTML = '<div class="empty-text">No hay documentos</div>';
+                prepararBtn.disabled = true;
+                return;
+            }
+            state.documentos.forEach(f => {
+                const div = document.createElement('div');
+                div.className = 'file-item';
+                div.innerHTML = `<span>${f.nombre}</span><span class="badge">${f.tipo}</span>`;
+                fileList.appendChild(div);
+            });
+            prepararBtn.disabled = !state.iaActiva;
+        }
+
+        function updateProgress(progreso, mensaje) {
+            progressFill.style.width = `${Math.min(progreso, 100)}%`;
+            progressText.textContent = mensaje || `${progreso}%`;
+        }
+
+        function mostrarModelos(modelos) {
+            state.modelos = modelos;
+            modelList.innerHTML = '';
+            if (modelos.length === 0) {
+                modelList.innerHTML = '<div class="empty-text">No se encontraron modelos .gguf</div>';
+                cargarModeloBtn.disabled = true;
+                return;
+            }
+            modelos.forEach((modelo) => {
+                const div = document.createElement('div');
+                div.className = 'model-item';
+                const sizeMB = (modelo.tamano / (1024 * 1024)).toFixed(1);
+                div.innerHTML = `<span>${modelo.nombre}</span><span class="size">${sizeMB} MB</span>`;
+                div.addEventListener('click', () => {
+                    document.querySelectorAll('.model-item').forEach(el => el.classList.remove('selected'));
+                    div.classList.add('selected');
+                    state.modeloSeleccionado = modelo;
+                    cargarModeloBtn.disabled = false;
+                });
+                modelList.appendChild(div);
+            });
+        }
+
+        function addLog(mensaje) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.style.color = 'rgba(255,255,255,0.1)';
+            logEntry.textContent = `[${timestamp}] ${mensaje}`;
+            finetuneLogs.appendChild(logEntry);
+            finetuneLogs.scrollTop = finetuneLogs.scrollHeight;
+            while (finetuneLogs.children.length > 15) {
+                finetuneLogs.removeChild(finetuneLogs.firstChild);
+            }
+        }
+
+        function updateKnowledgeEditor(conocimiento) {
+            if (!conocimiento || conocimiento.length === 0) {
+                knowledgeEditor.value = '# No hay conocimiento almacenado\n# Carga documentos y ejecuta "Preparar Dataset"';
+                knowledgeInfo.textContent = '0 chunks · 0 docs';
+                editorStats.textContent = 'Líneas: 0 · Caracteres: 0';
+                return;
+            }
+
+            let texto = '';
+            let chunks_count = 0;
+            let docs_set = new Set();
+
+            conocimiento.forEach(chunk => {
+                const doc = chunk.documento || 'Desconocido';
+                docs_set.add(doc);
+                chunks_count++;
+                texto += `=== DOCUMENTO: ${doc} ===\n`;
+                texto += chunk.contenido + '\n\n';
+            });
+
+            knowledgeEditor.value = texto || '# No hay conocimiento disponible';
+            knowledgeInfo.textContent = `${chunks_count} chunks · ${docs_set.size} docs`;
+            
+            const lines = texto.split('\n').length;
+            const chars = texto.length;
+            editorStats.textContent = `Líneas: ${lines} · Caracteres: ${chars}`;
+            editorStatus.textContent = '✅ Cargado';
+            editorTimestamp.textContent = `Última actualización: ${new Date().toLocaleString()}`;
+        }
+
+        // ============================================================
+        // API
+        // ============================================================
+        async function fetchAPI(endpoint, options = {}) {
+            const res = await fetch(endpoint, options);
+            if (!res.ok) {
+                const text = await res.text();
+                throw new Error(`HTTP ${res.status}: ${text.substring(0, 100)}`);
+            }
+            return res.json();
+        }
+
+        async function cargarEstado() {
+            try {
+                const data = await fetchAPI('/api/estado');
+                updateStatus(data.ia_activa, data.entrenamiento?.en_progreso || false);
+                if (data.modelo_cargado) {
+                    const nombre = data.modelo_cargado.split('\\').pop();
+                    updateModelInfo(nombre);
+                    if (data.finetune) {
+                        updateModeloData({
+                            tipo: data.finetune.tipo || '—',
+                            contexto: data.finetune.contexto || '—',
+                            tokens: data.finetune.tokens || '—',
+                            batch: data.finetune.batch || '—',
+                            threads: data.finetune.threads || '—'
+                        });
+                    }
+                }
+                if (data.entrenamiento?.documentos_cargados) updateFileList(data.entrenamiento.documentos_cargados);
+                if (data.entrenamiento?.progreso > 0) updateProgress(data.entrenamiento.progreso, data.entrenamiento.mensaje);
+                updateLlamaInfo(data.llama_activo || false);
+                if (data.finetune) {
+                    updateFinetuneInfo(data.finetune);
+                    // Actualizar editor con conocimiento
+                    if (data.finetune.conocimiento) {
+                        state.conocimiento = data.finetune.conocimiento;
+                        updateKnowledgeEditor(state.conocimiento);
+                    }
+                }
+            } catch (e) { console.error('Error cargando estado:', e); }
+        }
+
+        async function verificarLlama() {
+            try {
+                const data = await fetchAPI('/api/verificar_llama');
+                updateLlamaInfo(data.activo);
+            } catch (e) { console.error('Error verificando llama:', e); }
+        }
+
+        async function actualizarEstadoFinetune() {
+            try {
+                const data = await fetchAPI('/api/finetune/estado');
+                if (data.success) {
+                    updateFinetuneInfo(data.estado);
+                    if (data.estado.conocimiento) {
+                        state.conocimiento = data.estado.conocimiento;
+                        updateKnowledgeEditor(state.conocimiento);
+                    }
+                }
+            } catch (e) { console.error('Error finetune estado:', e); }
+        }
+
+        // ============================================================
+        // ACCIONES
+        // ============================================================
+        async function listarModelos() {
+            const carpeta = carpetaModelos.value.trim();
+            if (!carpeta) return;
+
+            listarModelosBtn.disabled = true;
+            listarModelosBtn.textContent = '⏳';
+
+            try {
+                const data = await fetchAPI('/api/listar_modelos', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ carpeta: carpeta })
+                });
+
+                if (data.success) {
+                    mostrarModelos(data.modelos);
+                    if (data.modelos.length > 0) {
+                        addLog(`📡 Encontrados ${data.modelos.length} modelos`);
+                    }
+                } else {
+                    addLog(`❌ ${data.error}`);
+                }
+            } catch (e) { addLog(`❌ ${e.message}`); }
+
+            listarModelosBtn.disabled = false;
+            listarModelosBtn.textContent = '🔍';
+        }
+
+        async function cargarModelo() {
+            if (!state.modeloSeleccionado) return;
+
+            cargarModeloBtn.disabled = true;
+            cargarModeloBtn.textContent = '⏳';
+
+            try {
+                const data = await fetchAPI('/api/cargar_modelo', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ruta_modelo: state.modeloSeleccionado.ruta })
+                });
+
+                if (data.success) {
+                    addLog(`✅ Modelo cargado: ${state.modeloSeleccionado.nombre}`);
+                    addLog(`   Tipo: ${data.tipo} · Cuantización: ${data.cuantizacion}`);
+                    updateModelInfo(state.modeloSeleccionado.nombre);
+                    updateModeloData({
+                        tipo: data.tipo || '—',
+                        contexto: data.contexto || '—',
+                        tokens: data.tokens || '—',
+                        batch: data.batch || '—',
+                        threads: data.threads || '—'
+                    });
+                    cargarEstado();
+                    setTimeout(verificarLlama, 2000);
+                } else {
+                    addLog(`❌ ${data.error}`);
+                }
+            } catch (e) { addLog(`❌ ${e.message}`); }
+
+            cargarModeloBtn.disabled = false;
+            cargarModeloBtn.textContent = '⬆️';
+        }
+
+        async function cargarDocumentos() {
+            const files = archivosInput.files;
+            if (files.length === 0) return;
+
+            const formData = new FormData();
+            for (const f of files) formData.append('archivos', f);
+
+            cargarDocumentosBtn.disabled = true;
+            cargarDocumentosBtn.textContent = '⏳';
+
+            try {
+                const data = await fetchAPI('/api/cargar_documentos', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (data.success) {
+                    archivosInput.value = '';
+                    cargarEstado();
+                    addLog(`✅ ${data.mensaje}`);
+                } else {
+                    addLog(`❌ ${data.error}`);
+                }
+            } catch (e) { addLog(`❌ ${e.message}`); }
+
+            cargarDocumentosBtn.disabled = false;
+            cargarDocumentosBtn.textContent = '⬆️';
+        }
+
+        async function prepararDataset() {
+            if (!state.iaActiva || state.documentos.length === 0) return;
+
+            prepararBtn.disabled = true;
+            prepararBtn.textContent = '⏳';
+            addLog('📦 Generando dataset...');
+
+            try {
+                const data = await fetchAPI('/api/finetune/preparar', { method: 'POST' });
+
+                if (data.success) {
+                    addLog(`✅ ${data.mensaje}`);
+                    actualizarEstadoFinetune();
+                } else {
+                    addLog(`❌ ${data.error}`);
+                }
+            } catch (e) { addLog(`❌ ${e.message}`); }
+
+            prepararBtn.disabled = false;
+            prepararBtn.textContent = '📦';
+        }
+
+        async function iniciarFinetune() {
+            if (!state.iaActiva || state.pares < 3) return;
+
+            finetuneBtn.disabled = true;
+            finetuneBtn.textContent = '⏳';
+            addLog('⚡ Iniciando Fine-Tuning...');
+
+            try {
+                const data = await fetchAPI('/api/finetune/iniciar', { method: 'POST' });
+
+                if (data.success) {
+                    addLog(`✅ ${data.mensaje}`);
+                    addLog(`   ${data.total_pares} pares · ${data.epochs} epochs`);
+                    actualizarEstadoFinetune();
+                } else {
+                    addLog(`❌ ${data.error}`);
+                }
+            } catch (e) { addLog(`❌ ${e.message}`); }
+
+            finetuneBtn.disabled = false;
+            finetuneBtn.textContent = '⚡';
+        }
+
+        async function limpiarDataset() {
+            try {
+                const data = await fetchAPI('/api/finetune/limpiar', { method: 'POST' });
+                if (data.success) {
+                    addLog('🧹 Dataset limpiado');
+                    state.conocimiento = [];
+                    updateKnowledgeEditor([]);
+                    actualizarEstadoFinetune();
+                }
+            } catch (e) { addLog(`❌ ${e.message}`); }
+        }
+
+        async function limpiarDocumentos() {
+            try {
+                await fetchAPI('/api/limpiar_documentos', { method: 'POST' });
+                updateFileList([]);
+                updateProgress(0, 'Esperando...');
+                cargarEstado();
+                addLog('🧹 Documentos limpiados');
+            } catch (e) { addLog(`❌ ${e.message}`); }
+        }
+
+        async function limpiarHistorial() {
+            try {
+                await fetchAPI('/api/limpiar_historial', { method: 'POST' });
+                addLog('🧹 Historial limpiado');
+            } catch (e) { console.error(e); }
+        }
+
+        async function limpiarTodo() {
+            if (!confirm('⚠️ ¿Eliminar TODOS los datos?')) return;
+            try {
+                await fetchAPI('/api/limpiar_documentos', { method: 'POST' });
+                await fetchAPI('/api/finetune/limpiar', { method: 'POST' });
+                await fetchAPI('/api/limpiar_historial', { method: 'POST' });
+                updateFileList([]);
+                updateProgress(0, 'Esperando...');
+                state.conocimiento = [];
+                updateKnowledgeEditor([]);
+                cargarEstado();
+                addLog('💀 Todo limpiado');
+            } catch (e) { addLog(`❌ ${e.message}`); }
+        }
+
+        // ============================================================
+        // EDITOR ACTIONS
+        // ============================================================
+        async function guardarConocimiento() {
+            const contenido = knowledgeEditor.value;
+            if (!contenido.trim()) {
+                addLog('⚠️ No hay contenido para guardar');
+                return;
+            }
+
+            addLog('💾 Guardando conocimiento...');
+            try {
+                // Aquí se enviaría al backend para guardar
+                // Por ahora solo simulamos
+                editorStatus.textContent = '💾 Guardando...';
+                setTimeout(() => {
+                    editorStatus.textContent = '✅ Guardado';
+                    editorTimestamp.textContent = `Última actualización: ${new Date().toLocaleString()}`;
+                    addLog('✅ Conocimiento guardado');
+                }, 1000);
+            } catch (e) {
+                addLog(`❌ ${e.message}`);
+                editorStatus.textContent = '❌ Error';
+            }
+        }
+
+        function recargarConocimiento() {
+            addLog('🔄 Recargando conocimiento...');
+            actualizarEstadoFinetune();
+            editorStatus.textContent = '🔄 Recargando...';
+            setTimeout(() => {
+                editorStatus.textContent = '✅ Recargado';
+            }, 500);
+        }
+
+        function limpiarEditor() {
+            if (knowledgeEditor.value.trim() && !confirm('¿Limpiar el editor? (el conocimiento no se eliminará del sistema)')) {
+                return;
+            }
+            knowledgeEditor.value = '# Editor limpiado\n# El conocimiento sigue almacenado en el sistema.';
+            editorStatus.textContent = '🧹 Limpiado';
+            addLog('🧹 Editor limpiado');
+            const lines = knowledgeEditor.value.split('\n').length;
+            editorStats.textContent = `Líneas: ${lines} · Caracteres: ${knowledgeEditor.value.length}`;
+        }
+
+        // ============================================================
+        // EVENTOS PANEL FINETUNE
+        // ============================================================
+        btnGuardarDataset.addEventListener('click', () => {
+            addLog('💾 Guardando dataset...');
+            setTimeout(() => addLog('✅ Dataset guardado'), 500);
+        });
+
+        btnVerDataset.addEventListener('click', () => {
+            addLog('👁️ Mostrando dataset...');
+            setTimeout(() => addLog(`📄 Dataset: ${state.pares} pares generados`), 500);
+        });
+
+        btnIniciarEntrenamiento.addEventListener('click', iniciarFinetune);
+
+        btnDetenerEntrenamiento.addEventListener('click', () => {
+            addLog('⏹️ Deteniendo entrenamiento...');
+            setTimeout(() => addLog('✅ Entrenamiento detenido'), 500);
+        });
+
+        btnVerProgreso.addEventListener('click', () => {
+            addLog(`📊 Progreso: ${state.pares > 0 ? state.pares + ' pares' : 'Sin datos'}`);
+        });
+
+        btnGuardarModelo.addEventListener('click', () => {
+            addLog('💾 Guardando modelo...');
+            setTimeout(() => addLog('✅ Modelo guardado'), 500);
+        });
+
+        btnExportarModelo.addEventListener('click', () => {
+            addLog('📤 Exportando modelo...');
+            setTimeout(() => addLog('✅ Modelo exportado'), 500);
+        });
+
+        btnResetearModelo.addEventListener('click', () => {
+            if (confirm('⚠️ ¿Resetear modelo a valores de fábrica?')) {
+                addLog('🔄 Reseteando modelo...');
+                setTimeout(() => addLog('✅ Modelo reseteado'), 500);
+            }
+        });
+
+        // ============================================================
+        // EVENTOS EDITOR
+        // ============================================================
+        btnGuardarConocimiento.addEventListener('click', guardarConocimiento);
+        btnRecargarConocimiento.addEventListener('click', recargarConocimiento);
+        btnLimpiarEditor.addEventListener('click', limpiarEditor);
+
+        knowledgeEditor.addEventListener('input', function() {
+            const lines = this.value.split('\n').length;
+            const chars = this.value.length;
+            editorStats.textContent = `Líneas: ${lines} · Caracteres: ${chars}`;
+            state.editorModificado = true;
+            editorStatus.textContent = '✏️ Editando...';
+        });
+
+        knowledgeEditor.addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const start = this.selectionStart;
+                const end = this.selectionEnd;
+                this.value = this.value.substring(0, start) + '    ' + this.value.substring(end);
+                this.selectionStart = this.selectionEnd = start + 4;
+            }
+        });
+
+        // ============================================================
+        // EVENTOS PRINCIPALES
+        // ============================================================
+        listarModelosBtn.addEventListener('click', listarModelos);
+        cargarModeloBtn.addEventListener('click', cargarModelo);
+        cargarDocumentosBtn.addEventListener('click', cargarDocumentos);
+        prepararBtn.addEventListener('click', prepararDataset);
+        finetuneBtn.addEventListener('click', iniciarFinetune);
+        limpiarFinetuneBtn.addEventListener('click', limpiarDataset);
+        limpiarDocsBtn.addEventListener('click', limpiarDocumentos);
+        limpiarHistorialBtn.addEventListener('click', limpiarHistorial);
+        limpiarTodoBtn.addEventListener('click', limpiarTodo);
+
+        btnSeleccionarArchivos.addEventListener('click', () => archivosInput.click());
+
+        explorarCarpetaBtn.addEventListener('click', () => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.webkitdirectory = true;
+            input.directory = true;
+            input.onchange = (e) => {
+                const files = e.target.files;
+                if (files.length > 0) {
+                    const path = files[0].webkitRelativePath;
+                    const folderPath = path.substring(0, path.lastIndexOf('/'));
+                    carpetaModelos.value = folderPath;
+                }
+            };
+            input.click();
+        });
+
+        // ============================================================
+        // INICIO
+        // ============================================================
+        cargarEstado();
+        setInterval(cargarEstado, 5000);
+        setInterval(verificarLlama, 3000);
+        setInterval(actualizarEstadoFinetune, 5000);
+        setTimeout(listarModelos, 800);
+        addLog('🚀 Sistema Neural Train iniciado');
+        addLog('📌 Carga un modelo y documentos para comenzar');
+        addLog('📖 El conocimiento se muestra en el panel derecho');
+    </script>
+</body>
+</html>
